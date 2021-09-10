@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 import sys
  
-sys.path.append('./taming-transformers')
+sys.path.append('/taming-transformers')
 from base64 import b64encode
 from omegaconf import OmegaConf
 from PIL import Image
@@ -15,7 +15,8 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import transforms
 from torchvision.transforms import functional as TF
- 
+
+sys.path.append('/CLIP') 
 from CLIP import clip
 import kornia.augmentation as K
 import numpy as np
