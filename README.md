@@ -1,10 +1,19 @@
 # neural-video-generator
 Generates videos with VQGAN+CLIP inside docker as a standalone task
 
+- [Build container](#build-container)
+- [IO Contract](#io-contract)
+  - [STATUS File](#status-file)
+- [Run Job](#run-job)
+- [Run Simulated Job](#run-simulated-job)
 
 https://user-images.githubusercontent.com/16694980/132940651-f22639fb-cac6-4a41-b16a-c706c73c20a9.mp4
 
-
+## Build container
+```bash
+cd neural-video-generator
+docker build . -t neural-video-generator
+```
 
 ## IO Contract
 Users must setup an **IO directory** that contains an **input directory** before running a job. This directory is mounted as a volume inside the container to handle IO to and from the host machine. 
@@ -27,12 +36,32 @@ sample_IO/
 ### STATUS File
 Status file is periodically updated by the container and can be polled to query the current state of a job. The status file will be used to determine if a job has completed, failed, or is in progress. 
 
-TODO. need to define & implement this
-
-## Build container
-```bash
-cd neural-video-generator
-docker build . -t neural-video-generator
+#### In Progress state 
+Template
+```
+# IN_PROGRESS [unique id] FRAME [current frame]/[max iterations]
+```
+Example contents of STATUS file
+```
+IN_PROGRESS 1234567890 FRAME 102/300
+```
+#### Completed state 
+Template
+```
+# COMPLETED [unique id] FRAME [max iterations]/[max iterations] [MP4 filename]
+```
+Example contents of STATUS file
+```
+COMPLETED 1234567890 FRAME 300/300 2021_09_11-05_05_50_PM-dmt_trip_a_million_eyeballs_hyper-realistic.mp4
+```
+#### Failed state 
+Template
+```
+# FAILED [unique id]
+```
+Example contents of STATUS file
+```
+FAILED 1234567890
 ```
 
 ## Run Job
