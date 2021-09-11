@@ -4,7 +4,6 @@
     "height":  480,
     "images_interval":  1,
     "init_image": "0.jpg" ,
-
     "seed": -1,
     "max_iterations": 30,
     "unique_id": "1234567890",

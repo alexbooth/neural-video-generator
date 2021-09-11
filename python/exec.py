@@ -98,7 +98,7 @@ if args.mode in ["TEST", "TEST_FAIL"]:
         generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH)
         print("Completed simulated run.")
         with open(STATUS_FILE, "w") as f:
-            f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4") # TODO write fake video
+            f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
     if args.mode == "TEST_FAIL":
         with open(STATUS_FILE, "w") as f:
             f.write(f"FAILED {uid}")  

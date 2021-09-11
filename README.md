@@ -70,7 +70,7 @@ Warning! Be sure host has at least 11 GB free memory! This is actually executing
 cd neural-video-generator
 docker run --rm -it -v $PWD/sample_IO:/video_io neural-video-generator python3 exec.py --mode=PROD
 ```
-The sample job generates 3 frames with the network by default, this can be changed in `sample_IO/config.json` 
+The sample job generates 30 frames with the network by default, this can be changed in `sample_IO/config.json` 
 
 Output is stored at `sample_IO/output/my_output_video.mp4`
 
