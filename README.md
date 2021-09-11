@@ -1,6 +1,11 @@
 # neural-video-generator
 Generates videos with VQGAN+CLIP inside docker as a standalone task
 
+
+https://user-images.githubusercontent.com/16694980/132940651-f22639fb-cac6-4a41-b16a-c706c73c20a9.mp4
+
+
+
 ## IO Contract
 Users must setup an **IO directory** that contains an **input directory** before running a job. This directory is mounted as a volume inside the container to handle IO to and from the host machine. 
 
