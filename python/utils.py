@@ -1,17 +1,20 @@
+import os
 import sys
 sys.path.append('../3rdparty/taming-transformers')
 
-import torch
 import math
+import imageio
+import numpy as np
+from subprocess import Popen, PIPE
+from PIL import Image, ImageFont, ImageDraw 
+
+import torch
+from torch import nn, optim
+from torch.nn import functional as F
+import kornia.augmentation as K
 
 from omegaconf import OmegaConf
 from taming.models import cond_transformer, vqgan
-
-from torch import nn, optim
-from torch.nn import functional as F
-
-import kornia.augmentation as K
-
 
 def sinc(x):
     return torch.where(x != 0, torch.sin(math.pi * x) / (math.pi * x), x.new_ones([]))
@@ -181,3 +184,19 @@ def download_img(img_url):
         return wget.download(img_url,out="input.jpg")
     except:
         return
+        
+def write_test_png(width, height, frame_num, filename):
+    font = ImageFont.load_default()
+    image = Image.new('RGB', (width, height))
+    draw = ImageDraw.Draw(image) 
+    draw.text((5, 5), f'frame {frame_num}', font=font, align ="left") 
+    imageio.imwrite(filename, np.array(image))
+    
+def generate_mp4(frame_path, output_path, fps=30):
+    print("Generating video")  
+    cwd = os.getcwd() 
+    os.chdir(output_path)
+    p = Popen(['ffmpeg', '-y', '-r', f'{fps}', '-i', f'{frame_path}/%04d.png', '-c:v', 'libx264', '-vf', f'fps={fps}', '-pix_fmt', 'yuv420p', f'{output_path}.mp4'], stdin=PIPE)
+    p.wait()
+    os.chdir(cwd)
+    print("The video is ready")

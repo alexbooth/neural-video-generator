@@ -10,9 +10,8 @@ import imageio
 import argparse
 import numpy as np
 from datetime import datetime
-from subprocess import Popen, PIPE
 
-from PIL import Image, ImageFile
+from PIL import Image, ImageFile 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import torch
@@ -86,15 +85,18 @@ noise_prompt_weights = []
 VIDEO_FILENAME = f"{FILENAME_PREFIX}-{prompts}".replace(" ", "_")
 VIDEO_OUTPUT_ABSPATH = os.path.join(VIDEO_IO_PATH, VIDEO_FILENAME)
 
-if args.mode in ["TEST", "TEST_FAIL"]: # TODO make this follow the I/O contract and output test video
+
+if args.mode in ["TEST", "TEST_FAIL"]:
     for i in range(max_iterations):
-        print(f"generating {max_iterations} frames at {args.test_duration/max_iterations:.2f} fps")
+        print(f"Simulating generating {max_iterations} frames at {args.test_duration/max_iterations:.2f} fps (current {i})")
+        write_test_png(size[0], size[1], i, f"{VIDEO_FRAME_PATH}/{i:04}.png")
         with open(STATUS_FILE, "w") as f:
-            f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")
+            f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")    
         time.sleep(args.test_duration / max_iterations)
-    print("completed")
-    
+        
     if args.mode == "TEST":
+        generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH)
+        print("Completed simulated run.")
         with open(STATUS_FILE, "w") as f:
             f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4") # TODO write fake video
     if args.mode == "TEST_FAIL":
@@ -102,8 +104,6 @@ if args.mode in ["TEST", "TEST_FAIL"]: # TODO make this follow the I/O contract 
             f.write(f"FAILED {uid}")  
     sys.exit()
     
-
-
 # Only vqgan supported now
 model_names={
     "vqgan_imagenet_f16_16384": 'ImageNet 16384',
@@ -258,13 +258,6 @@ def train(i):
     with torch.no_grad():
         z.copy_(z.maximum(z_min).minimum(z_max))
         
-def generate_mp4():
-    print("Generating video")   
-    os.chdir(VIDEO_OUTPUT_PATH)
-    p = Popen(['ffmpeg', '-y', '-r', '30', '-i', f'{VIDEO_FRAME_PATH}/%04d.png', '-c:v', 'libx264', '-vf', 'fps=30', '-pix_fmt', 'yuv420p', f'{VIDEO_OUTPUT_ABSPATH}.mp4'], stdin=PIPE)
-    p.wait()
-    print("The video is ready")
-
 i = 0
 try:
     while True:
@@ -272,11 +265,13 @@ try:
         if i == max_iterations:
             break
         i += 1
-    generate_mp4()
+    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH)
+    
+    with open(STATUS_FILE, "w") as f:
+        f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
 except:
     with open(STATUS_FILE, "w") as f:
         f.write(f"FAILED {uid}")
     sys.exit()
 
-with open(STATUS_FILE, "w") as f:
-    f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
+
