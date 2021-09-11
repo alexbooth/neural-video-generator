@@ -4,9 +4,11 @@ sys.path.append('./taming-transformers')
 
 import json
 import time
+import shutil
 import imageio
 import argparse
 import numpy as np
+from subprocess import Popen, PIPE
 
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -22,17 +24,20 @@ from CLIP import clip
 
 
 VIDEO_IO_PATH = os.environ['VIDEO_IO_PATH']
-CONFIG_PATH = os.path.join(VIDEO_IO_PATH, "config.json")
+VIDEO_INPUT_PATH = os.path.join(VIDEO_IO_PATH, "input")
+CONFIG_PATH = os.path.join(VIDEO_INPUT_PATH, "config.json")
 VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
+VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
+
+shutil.rmtree(VIDEO_OUTPUT_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
+os.makedirs(VIDEO_FRAME_PATH, exist_ok=True)
 
 # Hardcoding models in for now
 model = "vqgan_imagenet_f16_16384"
 clip_model = 'ViT-B/32'
 vqgan_config = f'{model}.yaml'
 vqgan_checkpoint = f'{model}.ckpt'
-
-print(vqgan_config, vqgan_checkpoint)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
@@ -71,18 +76,19 @@ with open(CONFIG_PATH) as f:
     config = json.load(f) 
     print(json.dumps(config, indent=4, sort_keys=True))
     
-prompts = config["texts"]
+prompts = config["prompts"]
 size = [config["width"], config["height"]]
 display_freq = config["images_interval"]
-init_image = config["init_image"]
+init_image = os.path.join(VIDEO_INPUT_PATH, config["init_image"])
 image_prompts = config["target_images"]
 seed = config["seed"]
 max_iterations = config["max_iterations"]
 input_images = config["input_images"]
+video_filename = config["video_filename"]
 
 step_size = 0.1
 init_weight=0.
-cutn=64,
+cutn=64
 cut_pow=1.
 noise_prompt_seeds = []
 noise_prompt_weights = []
@@ -113,11 +119,9 @@ if seed == -1:
     seed = None
 if init_image == "None":
     init_image = None
-elif not os.path.exists(os.path.join(VIDEO_IO_PATH, config["init_image"])):
-    print("Seed image not found. Exiting.")
-    sys.exit()
+elif not os.path.exists(init_image):
+    raise Exception("Seed image not found.")
 else:
-    init_image = os.path.join(VIDEO_IO_PATH, config["init_image"])
     print(f"Using seed image at {init_image}")
 
 if image_prompts == "None" or not image_prompts:
@@ -129,12 +133,12 @@ else:
 if init_image or image_prompts != []:
     input_images = True
 
-texts = [frase.strip() for frase in texts.split("|")]
-if texts == ['']:
-    texts = []
+prompts = [frase.strip() for frase in prompts.split("|")]
+if prompts == ['']:
+    prompts = []
 
-if texts:
-    print('Using texts:', texts)
+if prompts:
+    print('Using prompts:', prompts)
 if image_prompts:
     print('Using image prompts:', image_prompts)
 if seed is None:
@@ -236,7 +240,7 @@ def ascend_txt():
         result.append(prompt(iii))
     img = np.array(out.mul(255).clamp(0, 255)[0].cpu().detach().numpy().astype(np.uint8))[:,:,:]
     img = np.transpose(img, (1, 2, 0))
-    filename = f"{VIDEO_OUTPUT_PATH}/{i:04}.png"
+    filename = f"{VIDEO_FRAME_PATH}/{i:04}.png"
     imageio.imwrite(filename, np.array(img))
     return result
 
@@ -260,7 +264,8 @@ try:
         i += 1
 except KeyboardInterrupt:
     pass
-    
+
+print("Generating video")   
 init_frame = 1 #This is the frame where the video will start
 last_frame = i #You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
 
@@ -274,15 +279,15 @@ length = 15 #Desired video time in seconds
 frames = []
 
 for i in range(init_frame,last_frame): #
-    filename = f"{VIDEO_OUTPUT_PATH}/{i:04}.png"
+    filename = f"{VIDEO_FRAME_PATH}/{i:04}.png"
     frames.append(Image.open(filename))
 
 #fps = last_frame/10
 fps = np.clip(total_frames/length,min_fps,max_fps)
 
-from subprocess import Popen, PIPE
-p = Popen(['ffmpeg', '-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', str(fps), '-i', '-', '-vcodec', 'libx264', '-r', str(fps), '-pix_fmt', 'yuv420p', '-crf', '17', '-preset', 'veryslow', 'video.mp4'], stdin=PIPE)
 
+os.chdir(VIDEO_OUTPUT_PATH)
+p = Popen(['ffmpeg', '-y', '-r', '30', '-i', f'{VIDEO_FRAME_PATH}/%04d.png', '-c:v', 'libx264', '-vf', 'fps=30', '-pix_fmt', 'yuv420p', f'{video_filename}.mp4'], stdin=PIPE)
 print("The video is now being compressed, wait...")
 p.wait()
 print("The video is ready")

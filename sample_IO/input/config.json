@@ -1,0 +1,12 @@
+{
+    "prompts": "dmt trip a million eyeballs hyper-realistic",
+    "width":  480,
+    "height":  480,
+    "images_interval":  1,
+    "init_image": "0.jpg" ,
+    "target_images": "",
+    "seed": -1,
+    "max_iterations": 3,
+    "input_images": "",
+    "video_filename": "my_output_video"
+}
