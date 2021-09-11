@@ -82,4 +82,4 @@ docker run --rm -it -v $PWD/sample_IO:/video_io neural-video-generator python3 e
 ```
 Change duration of the simulated run by adding the flag  `--test_duration=10`
 
-Test failure case by changing mode to `--mode=TEST_FAIL`. This simulates what the contents of the `STATUS` file would look like during a failure. ##TODO IMPLEMENT THIS
+Test failure case by changing mode to `--mode=TEST_FAIL`. This simulates what the contents of the `STATUS` file would look like during a failure.
