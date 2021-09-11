@@ -46,7 +46,7 @@ The sample job generates 3 frames with the network by default, this can be chang
 Output is stored at `sample_IO/output/my_output_video.mp4`
 
 ## Run Simulated Job
-This is so integration can be done on hosts without GPU access. A fake job will run and `.mp4` output will be stored in the IO directory. 
+This is so integration can be done on hosts without GPU access or enough resources for CPU execution. A fake job will run and `.mp4` output will be stored in the IO directory. 
 ```bash
 cd neural-video-generator
 docker run --rm -it -v $PWD/sample_IO:/video_io neural-video-generator python3 exec.py --mode=TEST
