@@ -26,6 +26,7 @@ TODO. need to define & implement this
 
 ## Build container
 ```bash
+cd neural-video-generator
 docker build . -t neural-video-generator
 ```
 
