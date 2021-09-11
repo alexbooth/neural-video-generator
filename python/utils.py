@@ -1,7 +1,6 @@
 import torch
 import math
 
-
 from omegaconf import OmegaConf
 from taming.models import cond_transformer, vqgan
 

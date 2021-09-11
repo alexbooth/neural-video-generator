@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append('./taming-transformers')
+sys.path.append('../3rdparty/taming-transformers')
+sys.path.append('../3rdparty/CLIP')
 
 import json
 import time
@@ -20,7 +21,7 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 
 from utils import *
-from CLIP import clip
+import clip
 
 
 VIDEO_IO_PATH = os.environ['VIDEO_IO_PATH']
