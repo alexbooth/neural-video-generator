@@ -1,6 +1,6 @@
 [submodule "CLIP"]
-	path = CLIP
+	path = 3rdparty/CLIP
 	url = https://github.com/openai/CLIP
 [submodule "taming-transformers"]
-	path = taming-transformers
+	path = 3rdparty/taming-transformers
 	url = https://github.com/CompVis/taming-transformers
