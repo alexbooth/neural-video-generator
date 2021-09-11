@@ -9,6 +9,7 @@ import shutil
 import imageio
 import argparse
 import numpy as np
+from datetime import datetime
 from subprocess import Popen, PIPE
 
 from PIL import Image, ImageFile
@@ -29,6 +30,8 @@ VIDEO_INPUT_PATH = os.path.join(VIDEO_IO_PATH, "input")
 CONFIG_PATH = os.path.join(VIDEO_INPUT_PATH, "config.json")
 VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
 VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
+STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
+FILENAME_PREFIX = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
 shutil.rmtree(VIDEO_OUTPUT_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
@@ -44,11 +47,11 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode [TEST,PROD,SETUP]')
+parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode ["TEST","TEST_FAIL","PROD","SETUP"]')
 parser.add_argument('-d', '--test_duration', default=10, action='store', type=int, help='Duration of test run in seconds')
 args = parser.parse_args()
 
-if args.mode.upper() not in ["TEST","PROD","SETUP"]:
+if args.mode.upper() not in ["TEST","TEST_FAIL","PROD","SETUP"]:
     raise Exception("Unknown execution mode.")
 print(f"Execution mode: {args.mode}")
 
@@ -57,17 +60,6 @@ if args.mode == "SETUP":
     load_vqgan_model(vqgan_config, vqgan_checkpoint).to(device)
     clip.load(clip_model, jit=False)[0].eval().requires_grad_(False).to(device)
     sys.exit()
-    
-if args.mode == "TEST": # TODO make this follow the I/O contract and output test video
-    interval = args.test_duration/3
-    print(f"loading for {interval:.2f}s")
-    time.sleep(interval)
-    print(f"generating image for {interval:.2f}s")
-    time.sleep(interval)
-    print(f"generating video for {interval:.2f}s")
-    time.sleep(interval)
-    print("completed")
-    sys.exit()    
 
 if not os.path.exists(CONFIG_PATH):
     raise Exception("config.json not found.")
@@ -78,13 +70,11 @@ with open(CONFIG_PATH) as f:
     
 prompts = config["prompts"]
 size = [config["width"], config["height"]]
-display_freq = config["images_interval"]
 init_image = os.path.join(VIDEO_INPUT_PATH, config["init_image"])
 image_prompts = config["target_images"]
 seed = config["seed"]
 max_iterations = config["max_iterations"]
-input_images = config["input_images"]
-video_filename = config["video_filename"]
+uid = config["unique_id"]
 
 step_size = 0.1
 init_weight=0.
@@ -92,6 +82,27 @@ cutn=64
 cut_pow=1.
 noise_prompt_seeds = []
 noise_prompt_weights = []
+
+VIDEO_FILENAME = f"{FILENAME_PREFIX}-{prompts}".replace(" ", "_")
+VIDEO_OUTPUT_ABSPATH = os.path.join(VIDEO_IO_PATH, VIDEO_FILENAME)
+
+if args.mode in ["TEST", "TEST_FAIL"]: # TODO make this follow the I/O contract and output test video
+    for i in range(max_iterations):
+        print(f"generating {max_iterations} frames at {args.test_duration/max_iterations:.2f} fps")
+        with open(STATUS_FILE, "w") as f:
+            f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")
+        time.sleep(args.test_duration / max_iterations)
+    print("completed")
+    
+    if args.mode == "TEST":
+        with open(STATUS_FILE, "w") as f:
+            f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4") # TODO write fake video
+    if args.mode == "TEST_FAIL":
+        with open(STATUS_FILE, "w") as f:
+            f.write(f"FAILED {uid}")  
+    sys.exit()
+    
+
 
 # Only vqgan supported now
 model_names={
@@ -129,9 +140,6 @@ if image_prompts == "None" or not image_prompts:
 else:
     image_prompts = image_prompts.split("|")
     image_prompts = [image.strip() for image in image_prompts]
-
-if init_image or image_prompts != []:
-    input_images = True
 
 prompts = [frase.strip() for frase in prompts.split("|")]
 if prompts == ['']:
@@ -219,13 +227,6 @@ def synth(z):
     
     return clamp_with_grad(model.decode(z_q).add(1).div(2), 0, 1)
 
-@torch.no_grad()
-def checkin(i, losses):
-    losses_str = ', '.join(f'{loss.item():g}' for loss in losses)
-    print(f'i: {i}, loss: {sum(losses).item():g}, losses: {losses_str}')
-    #out = synth(z)
-    #TF.to_pil_image(out[0].cpu()).save('progress.png')
-
 def ascend_txt():
     global i
     out = synth(z)
@@ -245,15 +246,24 @@ def ascend_txt():
     return result
 
 def train(i):
+    with open(STATUS_FILE, "w") as f:
+        f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")
     opt.zero_grad()
     lossAll = ascend_txt()
-    if i % display_freq == 0:
-        checkin(i, lossAll)
+    losses_str = ', '.join(f'{loss.item():g}' for loss in lossAll)
+    print(f'i: {i}, loss: {sum(lossAll).item():g}, losses: {losses_str}')
     loss = sum(lossAll)
     loss.backward()
     opt.step()
     with torch.no_grad():
         z.copy_(z.maximum(z_min).minimum(z_max))
+        
+def generate_mp4():
+    print("Generating video")   
+    os.chdir(VIDEO_OUTPUT_PATH)
+    p = Popen(['ffmpeg', '-y', '-r', '30', '-i', f'{VIDEO_FRAME_PATH}/%04d.png', '-c:v', 'libx264', '-vf', 'fps=30', '-pix_fmt', 'yuv420p', f'{VIDEO_OUTPUT_ABSPATH}.mp4'], stdin=PIPE)
+    p.wait()
+    print("The video is ready")
 
 i = 0
 try:
@@ -262,32 +272,11 @@ try:
         if i == max_iterations:
             break
         i += 1
-except KeyboardInterrupt:
-    pass
+    generate_mp4()
+except:
+    with open(STATUS_FILE, "w") as f:
+        f.write(f"FAILED {uid}")
+    sys.exit()
 
-print("Generating video")   
-init_frame = 1 #This is the frame where the video will start
-last_frame = i #You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
-
-min_fps = 10
-max_fps = 30
-
-total_frames = last_frame-init_frame
-
-length = 15 #Desired video time in seconds
-
-frames = []
-
-for i in range(init_frame,last_frame): #
-    filename = f"{VIDEO_FRAME_PATH}/{i:04}.png"
-    frames.append(Image.open(filename))
-
-#fps = last_frame/10
-fps = np.clip(total_frames/length,min_fps,max_fps)
-
-
-os.chdir(VIDEO_OUTPUT_PATH)
-p = Popen(['ffmpeg', '-y', '-r', '30', '-i', f'{VIDEO_FRAME_PATH}/%04d.png', '-c:v', 'libx264', '-vf', 'fps=30', '-pix_fmt', 'yuv420p', f'{video_filename}.mp4'], stdin=PIPE)
-print("The video is now being compressed, wait...")
-p.wait()
-print("The video is ready")
+with open(STATUS_FILE, "w") as f:
+    f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
