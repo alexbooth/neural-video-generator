@@ -44,6 +44,7 @@ print('Using device:', device)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode [TEST,PROD,SETUP]')
+parser.add_argument('-d', '--test_duration', default=10, action='store', type=int, help='Duration of test run in seconds')
 args = parser.parse_args()
 
 if args.mode.upper() not in ["TEST","PROD","SETUP"]:
@@ -57,15 +58,13 @@ if args.mode == "SETUP":
     sys.exit()
     
 if args.mode == "TEST": # TODO make this follow the I/O contract and output test video
-    for i in range(10):
-        print("loading", i)
-        time.sleep(1)
-    for i in range(20):
-        print("generating image", i)
-        time.sleep(1)
-    for i in range(10):
-        print("generating video", i)
-        time.sleep(1)
+    interval = args.test_duration/3
+    print(f"loading for {interval:.2f}s")
+    time.sleep(interval)
+    print(f"generating image for {interval:.2f}s")
+    time.sleep(interval)
+    print(f"generating video for {interval:.2f}s")
+    time.sleep(interval)
     print("completed")
     sys.exit()    
 
