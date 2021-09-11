@@ -20,33 +20,87 @@ from torchvision.transforms import functional as TF
 from utils import *
 from CLIP import clip
 
+
 VIDEO_IO_PATH = os.environ['VIDEO_IO_PATH']
 CONFIG_PATH = os.path.join(VIDEO_IO_PATH, "config.json")
 VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
 
-if not os.path.exists(CONFIG_PATH):
-    print("config.json not found. Exiting.")
+# Hardcoding models in for now
+model = "vqgan_imagenet_f16_16384"
+clip_model = 'ViT-B/32'
+vqgan_config = f'{model}.yaml'
+vqgan_checkpoint = f'{model}.ckpt'
+
+print(vqgan_config, vqgan_checkpoint)
+
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print('Using device:', device)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode [TEST,PROD,SETUP]')
+args = parser.parse_args()
+
+if args.mode.upper() not in ["TEST","PROD","SETUP"]:
+    raise Exception("Unknown execution mode.")
+print(f"Execution mode: {args.mode}")
+
+if args.mode == "SETUP":
+    # download & cache models
+    load_vqgan_model(vqgan_config, vqgan_checkpoint).to(device)
+    clip.load(clip_model, jit=False)[0].eval().requires_grad_(False).to(device)
     sys.exit()
+    
+if args.mode == "TEST": # TODO make this follow the I/O contract and output test video
+    for i in range(10):
+        print("loading", i)
+        time.sleep(1)
+    for i in range(20):
+        print("generating image", i)
+        time.sleep(1)
+    for i in range(10):
+        print("generating video", i)
+        time.sleep(1)
+    print("completed")
+    sys.exit()    
+
+if not os.path.exists(CONFIG_PATH):
+    raise Exception("config.json not found.")
 
 with open(CONFIG_PATH) as f:    
     config = json.load(f) 
     print(json.dumps(config, indent=4, sort_keys=True))
     
-texts = config["texts"]
-width =  config["width"]
-height =  config["height"]
-model = config["model"]
-images_interval = config["images_interval"]
+prompts = config["texts"]
+size = [config["width"], config["height"]]
+display_freq = config["images_interval"]
 init_image = config["init_image"]
-target_images = config["target_images"]
+image_prompts = config["target_images"]
 seed = config["seed"]
 max_iterations = config["max_iterations"]
 input_images = config["input_images"]
 
+step_size = 0.1
+init_weight=0.
+cutn=64,
+cut_pow=1.
+noise_prompt_seeds = []
+noise_prompt_weights = []
+
 # Only vqgan supported now
-model_names={"vqgan_imagenet_f16_16384": 'ImageNet 16384',"vqgan_imagenet_f16_1024":"ImageNet 1024", 
-                 "wikiart_1024":"WikiArt 1024", "wikiart_16384":"WikiArt 16384", "coco":"COCO-Stuff", "faceshq":"FacesHQ", "sflckr":"S-FLCKR", "ade20k":"ADE20K", "ffhq":"FFHQ", "celebahq":"CelebA-HQ", "gumbel_8192": "Gumbel 8192"}
+model_names={
+    "vqgan_imagenet_f16_16384": 'ImageNet 16384',
+    "vqgan_imagenet_f16_1024":"ImageNet 1024", 
+    "wikiart_1024":"WikiArt 1024", 
+    "wikiart_16384":"WikiArt 16384", 
+    "coco":"COCO-Stuff", 
+    "faceshq":"FacesHQ", 
+    "sflckr":"S-FLCKR", 
+    "ade20k":"ADE20K", 
+    "ffhq":"FFHQ", 
+    "celebahq":"CelebA-HQ", 
+    "gumbel_8192": "Gumbel 8192"
+}
                  
 name_model = model_names[model]     
 
@@ -66,80 +120,32 @@ else:
     init_image = os.path.join(VIDEO_IO_PATH, config["init_image"])
     print(f"Using seed image at {init_image}")
 
-if target_images == "None" or not target_images:
-    target_images = []
+if image_prompts == "None" or not image_prompts:
+    image_prompts = []
 else:
-    target_images = target_images.split("|")
-    target_images = [image.strip() for image in target_images]
+    image_prompts = image_prompts.split("|")
+    image_prompts = [image.strip() for image in image_prompts]
 
-if init_image or target_images != []:
+if init_image or image_prompts != []:
     input_images = True
 
 texts = [frase.strip() for frase in texts.split("|")]
 if texts == ['']:
     texts = []
 
-
-args = argparse.Namespace(
-    prompts=texts,
-    image_prompts=target_images,
-    noise_prompt_seeds=[],
-    noise_prompt_weights=[],
-    size=[width, height],
-    init_image=init_image,
-    init_weight=0.,
-    clip_model='ViT-B/32',
-    vqgan_config=f'{model}.yaml',
-    vqgan_checkpoint=f'{model}.ckpt',
-    step_size=0.1,
-    cutn=64,
-    cut_pow=1.,
-    display_freq=images_interval,
-    seed=seed,
-)
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode [TEST,PRODUCTION,SETUP]')
-args2 = parser.parse_args()
-
-if args2.mode.upper() not in ["TEST","PRODUCTION","SETUP"]:
-    print("Unknown execution mode. Exiting.")
-    sys.exit()
-
-print(f"Execution mode: {args2.mode}")
-
-if args2.mode.upper() == "TEST": # TODO make this follow the I/O contract and output test video
-    for i in range(10):
-        print("loading", i)
-        time.sleep(1)
-    for i in range(20):
-        print("generating image", i)
-        time.sleep(1)
-    for i in range(10):
-        print("generating video", i)
-        time.sleep(1)
-    print("completed")
-    sys.exit()
-
-
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-print('Using device:', device)
 if texts:
     print('Using texts:', texts)
-if target_images:
-    print('Using image prompts:', target_images)
-if args.seed is None:
+if image_prompts:
+    print('Using image prompts:', image_prompts)
+if seed is None:
     seed = torch.seed()
-else:
-    seed = args.seed
 torch.manual_seed(seed)
 print('Using seed:', seed)
 
-model = load_vqgan_model(args.vqgan_config, args.vqgan_checkpoint).to(device)
-perceptor = clip.load(args.clip_model, jit=False)[0].eval().requires_grad_(False).to(device)
+model = load_vqgan_model(vqgan_config, vqgan_checkpoint).to(device)
+perceptor = clip.load(clip_model, jit=False)[0].eval().requires_grad_(False).to(device)
 
-if args2.mode == "SETUP": # TODO change arg2 
+if args.mode == "SETUP": 
     sys.exit()
 
 cut_size = perceptor.visual.input_resolution
@@ -149,13 +155,13 @@ else:
     e_dim = model.quantize.e_dim
 
 f = 2**(model.decoder.num_resolutions - 1)
-make_cutouts = MakeCutouts(cut_size, args.cutn, cut_pow=args.cut_pow)
+make_cutouts = MakeCutouts(cut_size, cutn, cut_pow=cut_pow)
 if is_gumbel:
     n_toks = model.quantize.n_embed
 else:
     n_toks = model.quantize.n_e
 
-toksX, toksY = args.size[0] // f, args.size[1] // f
+toksX, toksY = size[0] // f, size[1] // f
 sideX, sideY = toksX * f, toksY * f
 if is_gumbel:
     z_min = model.quantize.embed.weight.min(dim=0).values[None, :, None, None]
@@ -177,26 +183,26 @@ else:
     z = z.view([-1, toksY, toksX, e_dim]).permute(0, 3, 1, 2)
 z_orig = z.clone()
 z.requires_grad_(True)
-opt = optim.Adam([z], lr=args.step_size)
+opt = optim.Adam([z], lr=step_size)
 
 normalize = transforms.Normalize(mean=[0.48145466, 0.4578275, 0.40821073],
                                  std=[0.26862954, 0.26130258, 0.27577711])
 
 pMs = []
 
-for prompt in args.prompts:
+for prompt in prompts:
     txt, weight, stop = parse_prompt(prompt)
     embed = perceptor.encode_text(clip.tokenize(txt).to(device)).float()
     pMs.append(Prompt(embed, weight, stop).to(device))
 
-for prompt in args.image_prompts:
+for prompt in image_prompts:
     path, weight, stop = parse_prompt(prompt)
     img = resize_image(Image.open(path).convert('RGB'), (sideX, sideY))
     batch = make_cutouts(TF.to_tensor(img).unsqueeze(0).to(device))
     embed = perceptor.encode_image(normalize(batch)).float()
     pMs.append(Prompt(embed, weight, stop).to(device))
 
-for seed, weight in zip(args.noise_prompt_seeds, args.noise_prompt_weights):
+for seed, weight in zip(noise_prompt_seeds, noise_prompt_weights):
     gen = torch.Generator().manual_seed(seed)
     embed = torch.empty([1, perceptor.visual.output_dim]).normal_(generator=gen)
     pMs.append(Prompt(embed, weight).to(device))
@@ -223,8 +229,8 @@ def ascend_txt():
 
     result = []
 
-    if args.init_weight:
-        result.append(F.mse_loss(z, z_orig) * args.init_weight / 2)
+    if init_weight:
+        result.append(F.mse_loss(z, z_orig) * init_weight / 2)
 
     for prompt in pMs:
         result.append(prompt(iii))
@@ -237,7 +243,7 @@ def ascend_txt():
 def train(i):
     opt.zero_grad()
     lossAll = ascend_txt()
-    if i % args.display_freq == 0:
+    if i % display_freq == 0:
         checkin(i, lossAll)
     loss = sum(lossAll)
     loss.backward()
@@ -254,3 +260,29 @@ try:
         i += 1
 except KeyboardInterrupt:
     pass
+    
+init_frame = 1 #This is the frame where the video will start
+last_frame = i #You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
+
+min_fps = 10
+max_fps = 30
+
+total_frames = last_frame-init_frame
+
+length = 15 #Desired video time in seconds
+
+frames = []
+
+for i in range(init_frame,last_frame): #
+    filename = f"{VIDEO_OUTPUT_PATH}/{i:04}.png"
+    frames.append(Image.open(filename))
+
+#fps = last_frame/10
+fps = np.clip(total_frames/length,min_fps,max_fps)
+
+from subprocess import Popen, PIPE
+p = Popen(['ffmpeg', '-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', str(fps), '-i', '-', '-vcodec', 'libx264', '-r', str(fps), '-pix_fmt', 'yuv420p', '-crf', '17', '-preset', 'veryslow', 'video.mp4'], stdin=PIPE)
+
+print("The video is now being compressed, wait...")
+p.wait()
+print("The video is ready")
