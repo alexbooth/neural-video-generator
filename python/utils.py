@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../3rdparty/taming-transformers')
+
 import torch
 import math
 
