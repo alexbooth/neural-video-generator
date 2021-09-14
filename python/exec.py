@@ -31,7 +31,7 @@ VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
 VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
 STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
 
-shutil.rmtree(VIDEO_OUTPUT_PATH, ignore_errors=True)
+shutil.rmtree(VIDEO_FRAME_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
 os.makedirs(VIDEO_FRAME_PATH, exist_ok=True)
 
