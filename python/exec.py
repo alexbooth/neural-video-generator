@@ -99,7 +99,7 @@ if args.mode in ["TEST", "TEST_FAIL"]:
 
         with open(STATUS_FILE, "w") as f:
             f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% ETA {eta}")    
-        time.sleep(args.test_duration / max_iterations - (time.time() - frame_write_time))
+        time.sleep(max(0, args.test_duration / max_iterations - (time.time() - frame_write_time)))
         
     if args.mode == "TEST":
         generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
