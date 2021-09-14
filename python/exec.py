@@ -83,6 +83,9 @@ noise_prompt_weights = []
 
 VIDEO_FILENAME = f"{uid}-{prompts}".replace(" ", "_")
 
+with open(STATUS_FILE, "w") as f:
+    f.write(f"STARTING {uid}")  
+
 if args.mode in ["TEST", "TEST_FAIL"]:
     start_time = time.time()
     for i in range(max_iterations):
