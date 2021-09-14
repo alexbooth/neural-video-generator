@@ -89,14 +89,14 @@ if args.mode in ["TEST", "TEST_FAIL"]:
         write_test_png(size[0], size[1], f"Unique ID: {uid} Frame: {i+1} of {max_iterations}", f"{VIDEO_FRAME_PATH}/{i:04}.png")
 
         with open(STATUS_FILE, "w") as f:
-            f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")    
+            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}%")    
         time.sleep(args.test_duration / max_iterations)
         
     if args.mode == "TEST":
         generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
         print("Completed simulated run.")
         with open(STATUS_FILE, "w") as f:
-            f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
+            f.write(f"COMPLETED {uid} {VIDEO_FILENAME}.mp4")
     if args.mode == "TEST_FAIL":
         with open(STATUS_FILE, "w") as f:
             f.write(f"FAILED {uid}")  
@@ -245,7 +245,7 @@ def ascend_txt():
 
 def train(i):
     with open(STATUS_FILE, "w") as f:
-        f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")
+        f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}%")
     opt.zero_grad()
     lossAll = ascend_txt()
     losses_str = ', '.join(f'{loss.item():g}' for loss in lossAll)
@@ -266,7 +266,7 @@ try:
     generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
     
     with open(STATUS_FILE, "w") as f:
-        f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
+        f.write(f"COMPLETED {uid} {VIDEO_FILENAME}.mp4")
 except:
     with open(STATUS_FILE, "w") as f:
         f.write(f"FAILED {uid}")

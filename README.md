@@ -39,20 +39,20 @@ Status file is periodically updated by the container and can be polled to query 
 #### In Progress state 
 Template
 ```
-# IN_PROGRESS [unique id] FRAME [current frame]/[max iterations]
+# IN_PROGRESS [unique id] [% completed]
 ```
 Example contents of STATUS file
 ```
-IN_PROGRESS 1234567890 FRAME 102/300
+IN_PROGRESS 1234567890 45%
 ```
 #### Completed state 
 Template
 ```
-# COMPLETED [unique id] FRAME [max iterations]/[max iterations] [MP4 filename]
+# COMPLETED [unique id] [MP4 filename]
 ```
 Example contents of STATUS file
 ```
-COMPLETED 1234567890 FRAME 300/300 2021_09_11-05_05_50_PM-dmt_trip_a_million_eyeballs_hyper-realistic.mp4
+COMPLETED 1234567890 2021_09_11-05_05_50_PM-dmt_trip_a_million_eyeballs_hyper-realistic.mp4
 ```
 #### Failed state 
 Template
