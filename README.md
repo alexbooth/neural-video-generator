@@ -39,11 +39,11 @@ Status file is periodically updated by the container and can be polled to query 
 #### In Progress state 
 Template
 ```
-# IN_PROGRESS [unique id] [% completed]
+# IN_PROGRESS [unique id] [% completed] [ETA in seconds]
 ```
 Example contents of STATUS file
 ```
-IN_PROGRESS 1234567890 45%
+IN_PROGRESS 1234567890 45% 15s
 ```
 #### Completed state 
 Template

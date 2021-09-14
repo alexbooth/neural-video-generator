@@ -84,13 +84,19 @@ noise_prompt_weights = []
 VIDEO_FILENAME = f"{uid}-{prompts}".replace(" ", "_")
 
 if args.mode in ["TEST", "TEST_FAIL"]:
+    start_time = time.time()
     for i in range(max_iterations):
+        curr_time = time.time()
+        avg_frame_time = (curr_time-start_time)/(i+0.001)
+        eta = "unknown" if i == 0 else str(int(avg_frame_time*(max_iterations-i-1)))+'s'
+
         print(f"Simulating generating {max_iterations} frames (current {i})")
+        frame_write_time = time.time()
         write_test_png(size[0], size[1], f"Unique ID: {uid} Frame: {i+1} of {max_iterations}", f"{VIDEO_FRAME_PATH}/{i:04}.png")
 
         with open(STATUS_FILE, "w") as f:
-            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}%")    
-        time.sleep(args.test_duration / max_iterations)
+            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% ETA {eta}")    
+        time.sleep(args.test_duration / max_iterations - (time.time() - frame_write_time))
         
     if args.mode == "TEST":
         generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
@@ -258,8 +264,14 @@ def train(i):
         
 i = 0
 try:
+    start_time = time.time()
     while True:
+        curr_time = time.time()
+        avg_frame_time = (curr_time-start_time)/(i+0.001)
+        eta = "unknown" if i == 0 else str(int(avg_frame_time*(max_iterations-i-1)))+'s' 
         train(i)
+        with open(STATUS_FILE, "w") as f:
+            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% ETA {eta}")  
         if i == max_iterations:
             break
         i += 1
