@@ -85,8 +85,9 @@ VIDEO_FILENAME = f"{uid}-{prompts}".replace(" ", "_")
 
 if args.mode in ["TEST", "TEST_FAIL"]:
     for i in range(max_iterations):
-        print(f"Simulating generating {max_iterations} frames at {args.test_duration/max_iterations:.2f} fps (current {i})")
-        write_test_png(size[0], size[1], i, f"{VIDEO_FRAME_PATH}/{i:04}.png")
+        print(f"Simulating generating {max_iterations} frames (current {i})")
+        write_test_png(size[0], size[1], f"Unique ID: {uid} Frame: {i+1} of {max_iterations}", f"{VIDEO_FRAME_PATH}/{i:04}.png")
+
         with open(STATUS_FILE, "w") as f:
             f.write(f"IN_PROGRESS {uid} FRAME {i}/{max_iterations}")    
         time.sleep(args.test_duration / max_iterations)

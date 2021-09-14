@@ -185,11 +185,12 @@ def download_img(img_url):
     except:
         return
         
-def write_test_png(width, height, frame_num, filename):
+def write_test_png(width, height, text, filename):
     font = ImageFont.load_default()
     image = Image.new('RGB', (width, height))
-    draw = ImageDraw.Draw(image) 
-    draw.text((5, 5), f'frame {frame_num}', font=font, align ="left") 
+    draw = ImageDraw.Draw(image)
+    w, h = draw.textsize(text)
+    draw.text(((width-w)//2,(height-h)//2), text, font=font) 
     imageio.imwrite(filename, np.array(image))
     
 def generate_mp4(frame_path, output_path, filename, fps=30):
