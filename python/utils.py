@@ -192,11 +192,11 @@ def write_test_png(width, height, frame_num, filename):
     draw.text((5, 5), f'frame {frame_num}', font=font, align ="left") 
     imageio.imwrite(filename, np.array(image))
     
-def generate_mp4(frame_path, output_path, fps=30):
+def generate_mp4(frame_path, output_path, filename, fps=30):
     print("Generating video")  
     cwd = os.getcwd() 
     os.chdir(output_path)
-    p = Popen(['ffmpeg', '-y', '-r', f'{fps}', '-i', f'{frame_path}/%04d.png', '-c:v', 'libx264', '-vf', f'fps={fps}', '-pix_fmt', 'yuv420p', f'{output_path}.mp4'], stdin=PIPE)
+    p = Popen(['ffmpeg', '-y', '-r', f'{fps}', '-i', f'{frame_path}/%04d.png', '-c:v', 'libx264', '-vf', f'fps={fps}', '-pix_fmt', 'yuv420p', f'{filename}.mp4'], stdin=PIPE)
     p.wait()
     os.chdir(cwd)
     print("The video is ready")

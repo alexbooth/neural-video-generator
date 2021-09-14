@@ -30,7 +30,6 @@ CONFIG_PATH = os.path.join(VIDEO_INPUT_PATH, "config.json")
 VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
 VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
 STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
-FILENAME_PREFIX = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
 shutil.rmtree(VIDEO_OUTPUT_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
@@ -82,9 +81,7 @@ cut_pow=1.
 noise_prompt_seeds = []
 noise_prompt_weights = []
 
-VIDEO_FILENAME = f"{FILENAME_PREFIX}-{prompts}".replace(" ", "_")
-VIDEO_OUTPUT_ABSPATH = os.path.join(VIDEO_IO_PATH, VIDEO_FILENAME)
-
+VIDEO_FILENAME = f"{uid}-{prompts}".replace(" ", "_")
 
 if args.mode in ["TEST", "TEST_FAIL"]:
     for i in range(max_iterations):
@@ -95,7 +92,7 @@ if args.mode in ["TEST", "TEST_FAIL"]:
         time.sleep(args.test_duration / max_iterations)
         
     if args.mode == "TEST":
-        generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH)
+        generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
         print("Completed simulated run.")
         with open(STATUS_FILE, "w") as f:
             f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
@@ -265,7 +262,7 @@ try:
         if i == max_iterations:
             break
         i += 1
-    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH)
+    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
     
     with open(STATUS_FILE, "w") as f:
         f.write(f"COMPLETED {uid} FRAME {max_iterations}/{max_iterations} {VIDEO_FILENAME}.mp4")
