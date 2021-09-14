@@ -46,7 +46,7 @@ print('Using device:', device)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', default='TEST', action='store', type=str, help='Execution mode ["TEST","TEST_FAIL","PROD","SETUP"]')
-parser.add_argument('-d', '--test_duration', default=10, action='store', type=int, help='Duration of test run in seconds')
+parser.add_argument('-d', '--test_duration', default=30, action='store', type=int, help='Duration of test run in seconds')
 args = parser.parse_args()
 
 if args.mode.upper() not in ["TEST","TEST_FAIL","PROD","SETUP"]:
