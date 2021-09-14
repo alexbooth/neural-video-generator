@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM --platform=linux/amd64 ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -13,7 +13,7 @@ RUN apt-get update -y &&                                        \
         vim                                                     \
         ffmpeg  &&                                              \
         rm -rf /var/lib/apt/lists/* &&                          \
-    pip3 install                                                \
+    pip3 install --no-cache-dir                                 \
         transformers                                            \
         ftfy                                                    \
         regex                                                   \
@@ -39,7 +39,7 @@ RUN git clone https://github.com/alexbooth/neural-video-generator.git --recursiv
     mv /vqgan_imagenet_f16_16384.yaml /neural-video-generator/python
 RUN cd neural-video-generator/python && python3 exec.py --mode SETUP
 
-WORKDIR neural-video-generator/python
+WORKDIR /neural-video-generator/python
 
 # TODO delete... local dev stuff
 #COPY ./python/exec.py neural-video-generator/python/exec.py
