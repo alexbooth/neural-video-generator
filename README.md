@@ -63,7 +63,7 @@ Template
 ```
 Example contents of STATUS file
 ```
-COMPLETED 1234567890 2021_09_11-05_05_50_PM-dmt_trip_a_million_eyeballs_hyper-realistic.mp4
+COMPLETED 1234567890 1234567890-dmt_trip_a_million_eyeballs_hyper-realistic.mp4
 ```
 #### Failed state 
 Template
