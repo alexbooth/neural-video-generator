@@ -98,7 +98,7 @@ if args.mode in ["TEST", "TEST_FAIL"]:
         write_test_png(size[0], size[1], f"Unique ID: {uid} Frame: {i+1} of {max_iterations}", f"{VIDEO_FRAME_PATH}/{i:04}.png")
 
         with open(STATUS_FILE, "w") as f:
-            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% ETA {eta}")    
+            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% {eta}")    
         time.sleep(max(0, args.test_duration / max_iterations - (time.time() - frame_write_time)))
         
     if args.mode == "TEST":
@@ -274,7 +274,7 @@ try:
         eta = "unknown" if i == 0 else str(int(avg_frame_time*(max_iterations-i-1)))+'s' 
         train(i)
         with open(STATUS_FILE, "w") as f:
-            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% ETA {eta}")  
+            f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}% {eta}")  
         if i == max_iterations:
             break
         i += 1
