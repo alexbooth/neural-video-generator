@@ -37,7 +37,8 @@ sample_IO/
 Status file is periodically updated by the container and can be polled to query the current state of a job. The status file will be used to determine if a job has completed, failed, or is in progress. 
 
 #### Starting state 
-Job will breifly be in a starting state when a new job is kicked off.
+Job will breifly be in a starting state when a new job is kicked off.  
+
 Template
 ```
 # STARTING [unique id]
