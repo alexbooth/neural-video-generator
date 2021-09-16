@@ -1,11 +1,6 @@
 {
-    "prompts": "dmt trip a million eyeballs hyper-realistic",
-    "width":  480,
-    "height":  480,
-    "images_interval":  1,
+    "prompt": "dmt trip a million eyeballs hyper-realistic",
     "init_image": "0.jpg" ,
-    "seed": -1,
-    "max_iterations": 30,
     "unique_id": "1234567890",
-    "target_images": ""
+    "num_frames": 30
 }

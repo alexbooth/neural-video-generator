@@ -66,12 +66,12 @@ with open(CONFIG_PATH) as f:
     config = json.load(f) 
     print(json.dumps(config, indent=4, sort_keys=True))
     
-prompts = config["prompts"]
-size = [config["width"], config["height"]]
+prompts = config["prompt"]
+size = [config.get('width', 480), config.get('height', 480)]
 init_image = os.path.join(VIDEO_INPUT_PATH, config["init_image"])
-image_prompts = config["target_images"]
-seed = config["seed"]
-max_iterations = config["max_iterations"]
+image_prompts = config.get('target_images', "")
+seed = config.get('seed', -1)
+max_iterations = config["num_frames"]
 uid = config["unique_id"]
 
 step_size = 0.1
