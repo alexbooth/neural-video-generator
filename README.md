@@ -34,7 +34,7 @@ sample_IO/
 └── STATUS
 ```
 ### STATUS File
-Status file is periodically updated by the container and can be polled to query the current state of a job. The status file will be used to determine if a job has completed, failed, or is in progress. 
+Status file is periodically updated by the container and can be polled to query the current state of a job. The status file will be used to determine if a job has is starting, completed, failed, or is in progress. 
 
 #### Starting state 
 Job will breifly be in a starting state when a new job is kicked off.  
@@ -45,7 +45,7 @@ Template
 ```
 Example contents of STATUS file
 ```
-IN_PROGRESS 1234567890
+STARTING 1234567890
 ```
 
 #### In Progress state 
