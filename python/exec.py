@@ -68,7 +68,7 @@ with open(CONFIG_PATH) as f:
     
 prompts = config["prompt"]
 size = [config.get('width', 480), config.get('height', 480)]
-init_image = os.path.join(VIDEO_INPUT_PATH, config["init_image"])
+init_image = config.get('init_image', None)
 image_prompts = config.get('target_images', "")
 seed = config.get('seed', -1)
 max_iterations = config["num_frames"]
@@ -135,11 +135,11 @@ else:
 
 if seed == -1:
     seed = None
-if init_image == "None":
+if init_image == "None" or init_image == "":
     init_image = None
-elif not os.path.exists(init_image):
-    raise Exception("Seed image not found.")
-else:
+    print("Using random seed image")
+if os.path.isfile(os.path.join(VIDEO_INPUT_PATH, config["init_image"])):
+    init_image = os.path.join(VIDEO_INPUT_PATH, config["init_image"])
     print(f"Using seed image at {init_image}")
 
 if image_prompts == "None" or not image_prompts:

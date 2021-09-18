@@ -40,7 +40,3 @@ RUN git clone https://github.com/alexbooth/neural-video-generator.git --recursiv
 RUN cd neural-video-generator/python && python3 exec.py --mode SETUP
 
 WORKDIR /neural-video-generator/python
-
-# TODO delete... local dev stuff
-# COPY ./python/exec.py /neural-video-generator/python/exec.py
-# COPY ./python/utils.py /neural-video-generator/python/utils.py
