@@ -253,8 +253,6 @@ def ascend_txt():
     return result
 
 def train(i):
-    with open(STATUS_FILE, "w") as f:
-        f.write(f"IN_PROGRESS {uid} {int(i/max_iterations*100)}%")
     opt.zero_grad()
     lossAll = ascend_txt()
     losses_str = ', '.join(f'{loss.item():g}' for loss in lossAll)
