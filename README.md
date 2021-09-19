@@ -7,7 +7,13 @@ Generates videos with VQGAN+CLIP inside docker as a standalone task
 - [Run Job](#run-job)
 - [Run Simulated Job](#run-simulated-job)
 
-https://user-images.githubusercontent.com/16694980/132940651-f22639fb-cac6-4a41-b16a-c706c73c20a9.mp4
+<p align="middle">
+  <img src="https://user-images.githubusercontent.com/16694980/133938520-349133fb-b531-4a30-a0ac-c9c5da79e677.jpg" width="40%" />
+  <img src="https://user-images.githubusercontent.com/16694980/133938653-a652c272-28b7-40cd-9c99-528b2c694e62.gif" width="40%" />
+</p>
+<p align="middle">
+  <b>Seed image + Input prompt:</b> "dmt trip a million eyeballs hyper-realistic"
+</p>
 
 ## Build container
 ```bash
