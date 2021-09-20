@@ -92,7 +92,7 @@ The sample job generates 30 frames with the network by default, this can be chan
 
 Output is stored at `sample_IO/output/my_output_video.mp4`
 
-## Run Job with GPU
+## Run Job With GPU
 First install `nvidia-docker2`
 
 [Ubuntu setup](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit)
