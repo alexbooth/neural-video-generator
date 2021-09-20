@@ -92,6 +92,23 @@ The sample job generates 30 frames with the network by default, this can be chan
 
 Output is stored at `sample_IO/output/my_output_video.mp4`
 
+## Run Job with GPU
+First install `nvidia-docker2`
+
+[Ubuntu setup](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit)
+```
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+   && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - \
+   && curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+sudo apt-get install -y nvidia-docker2
+sudo systemctl restart docker
+```
+Run job with `--gpus all` flag
+```
+docker run --gpus all --rm -it -v $PWD/sample_IO:/video_io neural-video-generator python3 exec.py --mode=PROD
+```
+
 ## Run Simulated Job
 This is so integration can be done on hosts without GPU access or enough resources for CPU execution. A fake job will run and `.mp4` output will be stored in the IO directory. 
 ```bash
