@@ -27,7 +27,13 @@ import clip
 VIDEO_IO_PATH = os.environ['VIDEO_IO_PATH']
 VIDEO_INPUT_PATH = os.path.join(VIDEO_IO_PATH, "input")
 CONFIG_PATH = os.path.join(VIDEO_INPUT_PATH, "config.json")
-VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
+if not os.path.exists(CONFIG_PATH):
+    raise Exception("config.json not found.")
+
+with open(CONFIG_PATH) as f:    
+    config = json.load(f) 
+    print(json.dumps(config, indent=4, sort_keys=True))
+VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, config['unique_id'])
 VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
 STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
 
@@ -59,12 +65,7 @@ if args.mode == "SETUP":
     clip.load(clip_model, jit=False)[0].eval().requires_grad_(False).to(device)
     sys.exit()
 
-if not os.path.exists(CONFIG_PATH):
-    raise Exception("config.json not found.")
 
-with open(CONFIG_PATH) as f:    
-    config = json.load(f) 
-    print(json.dumps(config, indent=4, sort_keys=True))
     
 prompts = config["prompt"]
 size = [config.get('width', 480), config.get('height', 480)]
