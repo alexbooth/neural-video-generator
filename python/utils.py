@@ -210,7 +210,7 @@ def interpolate(im1, im2, weight):
     # im1/im2 = np float32 tensors
     return im1*(1-weight)+im2*weight
 
-def interpolate_frames(src_path, new_frames=1):
+def interpolate_frames(src_path, inp_im1, inp_im2, num_init_frames, new_frames=1):
     orig_list = sorted(glob.glob(os.path.join(src_path, "*.png")))
     
     for i in range(1, len(orig_list)):
@@ -237,23 +237,40 @@ def interpolate_frames(src_path, new_frames=1):
         dst = f"{src_path}/{i+len(mod_list):05}.png"
         shutil.copyfile(src, dst)
        
-    print(mod_list)
+    mod_list = sorted(glob.glob(os.path.join(src_path, "*.png")))
+     
+    for i in range(num_init_frames):
+        dst = f"{src_path}/{i+len(mod_list):05}.png"
+        weight = 1-i/num_init_frames
+        im3 = interpolate(inp_im1, inp_im2, weight) / 255
+        im3 = im3.astype(np.uint8)
+        imageio.imwrite(dst, im3)  
     
-def generate_ext_mp4(src_dir, dest_dir, size, im1, im2, title, num_title_frames, num_init_frames, num_clip_frames):
+def generate_ext(src_dir, dest_dir, size, im1, im2, title, num_title_frames, num_init_frames, num_clip_frames):
     total_frames = 0
     
     # write title frames
     for i in range(num_title_frames):
+        write_test_png(size[0], size[1], f"{title}", f"{dest_dir}/{total_frames:05}.png")
         total_frames += 1
-        write_test_png(size[0], size[1], f"{title}", f"{dest_dir}/{total_frames:04}.png")
         
-    # rest on input image 
+    # interp from input image 
     for i in range(num_init_frames):
-        filename = f"{dest_dir}/{i+num_title_frames:04}.png"
+        filename = f"{dest_dir}/{total_frames:05}.png"
         weight = i/num_init_frames
         im3 = interpolate(im1, im2, weight) / 255
         im3 = im3.astype(np.uint8)
         imageio.imwrite(filename, im3)  
+        total_frames += 1
+        
+    # copy everything in original frame dir
+    orig_frames = sorted(glob.glob(os.path.join(src_dir, "*.png")))
+    print(orig_frames)
+    for i, src in enumerate(orig_frames):
+        dst = f"{dest_dir}/{total_frames:05}.png"
+        shutil.copyfile(src, dst)
+        total_frames += 1
+    os.sync()
         
 def generate_mp4(frame_path, output_path, filename, fps=30):
     print("Generating video")  

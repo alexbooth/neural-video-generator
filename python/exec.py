@@ -33,6 +33,7 @@ STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
 VIDEO_EXTENDED_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames_ext")
 
 shutil.rmtree(VIDEO_FRAME_PATH, ignore_errors=True)
+shutil.rmtree(VIDEO_EXTENDED_FRAME_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
 os.makedirs(VIDEO_FRAME_PATH, exist_ok=True)
 os.makedirs(VIDEO_EXTENDED_FRAME_PATH, exist_ok=True)
@@ -295,16 +296,17 @@ try:
     im2 = np.array(synth(z_orig).mul(255).clamp(0, 255)[0].cpu().detach().numpy().astype(np.uint8))[:,:,:]
     im2 = np.transpose(im2, (1, 2, 0)).astype(np.float32) * 255
     
-    interpolate_frames(VIDEO_FRAME_PATH, new_frames=4)
+    interpolate_frames(VIDEO_FRAME_PATH, im1, im2, num_init_frames, new_frames=4)
         
-    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME, fps=fps)
-    #generate_ext_mp4(VIDEO_FRAME_PATH, VIDEO_EXTENDED_FRAME_PATH, size, im1, im2, prompts[0], num_title_frames, num_init_frames, config["num_frames"])
+    #generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME, fps=fps)
+    generate_ext(VIDEO_FRAME_PATH, VIDEO_EXTENDED_FRAME_PATH, size, im1, im2, prompts[0], num_title_frames, num_init_frames, config["num_frames"])
+    generate_mp4(VIDEO_EXTENDED_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME, fps=fps)
     
     with open(STATUS_FILE, "w") as f:
         f.write(f"COMPLETED {uid} {VIDEO_FILENAME}.mp4")
 except:
     with open(STATUS_FILE, "w") as f:
         f.write(f"FAILED {uid}")
-    sys.exit()
+    raise Exception()
 
 
