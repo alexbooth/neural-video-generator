@@ -30,10 +30,12 @@ CONFIG_PATH = os.path.join(VIDEO_INPUT_PATH, "config.json")
 VIDEO_OUTPUT_PATH = os.path.join(VIDEO_IO_PATH, "output")
 VIDEO_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames")
 STATUS_FILE = os.path.join(VIDEO_IO_PATH, "STATUS")
+VIDEO_EXTENDED_FRAME_PATH = os.path.join(VIDEO_OUTPUT_PATH, "frames_ext")
 
 shutil.rmtree(VIDEO_FRAME_PATH, ignore_errors=True)
 os.makedirs(VIDEO_OUTPUT_PATH, exist_ok=True)
 os.makedirs(VIDEO_FRAME_PATH, exist_ok=True)
+os.makedirs(VIDEO_EXTENDED_FRAME_PATH, exist_ok=True)
 
 # Hardcoding models in for now
 model = "vqgan_imagenet_f16_16384"
@@ -73,15 +75,20 @@ image_prompts = config.get('target_images', "")
 seed = config.get('seed', -1)
 max_iterations = config["num_frames"]
 uid = config["unique_id"]
+fps = config.get('fps', 24)
+step_size = config.get('lr', 0.02)
+title_time = config.get('title_time', 3.5)
+init_rest_time = config.get('init_rest_time', 2.5)
+num_title_frames = round(title_time * fps)
+num_init_frames = round(init_rest_time * fps)
 
-step_size = 0.1
 init_weight=0.
 cutn=64
 cut_pow=1.
 noise_prompt_seeds = []
 noise_prompt_weights = []
 
-VIDEO_FILENAME = f"{uid}-{prompts}".replace(" ", "_")
+VIDEO_FILENAME = f"{uid}".replace(" ", "_")
 
 with open(STATUS_FILE, "w") as f:
     f.write(f"STARTING {uid}")  
@@ -102,7 +109,7 @@ if args.mode in ["TEST", "TEST_FAIL"]:
         time.sleep(max(0, args.test_duration / max_iterations - (time.time() - frame_write_time)))
         
     if args.mode == "TEST":
-        generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
+        generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME, fps=fps)
         print("Completed simulated run.")
         with open(STATUS_FILE, "w") as f:
             f.write(f"COMPLETED {uid} {VIDEO_FILENAME}.mp4")
@@ -209,6 +216,14 @@ normalize = transforms.Normalize(mean=[0.48145466, 0.4578275, 0.40821073],
 
 pMs = []
 
+def synth(z):
+    if is_gumbel:
+        z_q = vector_quantize(z.movedim(1, 3), model.quantize.embed.weight).movedim(3, 1)
+    else:
+        z_q = vector_quantize(z.movedim(1, 3), model.quantize.embedding.weight).movedim(3, 1)
+    
+    return clamp_with_grad(model.decode(z_q).add(1).div(2), 0, 1)
+      
 for prompt in prompts:
     txt, weight, stop = parse_prompt(prompt)
     embed = perceptor.encode_text(clip.tokenize(txt).to(device)).float()
@@ -226,13 +241,7 @@ for seed, weight in zip(noise_prompt_seeds, noise_prompt_weights):
     embed = torch.empty([1, perceptor.visual.output_dim]).normal_(generator=gen)
     pMs.append(Prompt(embed, weight).to(device))
 
-def synth(z):
-    if is_gumbel:
-        z_q = vector_quantize(z.movedim(1, 3), model.quantize.embed.weight).movedim(3, 1)
-    else:
-        z_q = vector_quantize(z.movedim(1, 3), model.quantize.embedding.weight).movedim(3, 1)
-    
-    return clamp_with_grad(model.decode(z_q).add(1).div(2), 0, 1)
+
 
 def ascend_txt():
     global i
@@ -248,7 +257,7 @@ def ascend_txt():
         result.append(prompt(iii))
     img = np.array(out.mul(255).clamp(0, 255)[0].cpu().detach().numpy().astype(np.uint8))[:,:,:]
     img = np.transpose(img, (1, 2, 0))
-    filename = f"{VIDEO_FRAME_PATH}/{i:04}.png"
+    filename = f"{VIDEO_FRAME_PATH}/{i+num_title_frames+num_init_frames:04}.png"
     imageio.imwrite(filename, np.array(img))
     return result
 
@@ -267,6 +276,10 @@ i = 0
 try:
     start_time = time.time()
     while True:
+        for g in opt.param_groups:
+            g['lr'] = min(step_size, 0.1)
+            step_size *= 1.02
+    
         curr_time = time.time()
         avg_frame_time = (curr_time-start_time)/(i+0.001)
         eta = "unknown" if i == 0 else str(int(avg_frame_time*(max_iterations-i-1)))+'s' 
@@ -276,7 +289,16 @@ try:
         if i == max_iterations:
             break
         i += 1
-    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME)
+
+    # rest on input image
+    im1 = np.array(pil_image).astype(np.float32) * 255
+    im2 = np.array(synth(z_orig).mul(255).clamp(0, 255)[0].cpu().detach().numpy().astype(np.uint8))[:,:,:]
+    im2 = np.transpose(im2, (1, 2, 0)).astype(np.float32) * 255
+    
+    interpolate_frames(VIDEO_FRAME_PATH, new_frames=4)
+        
+    generate_mp4(VIDEO_FRAME_PATH, VIDEO_OUTPUT_PATH, VIDEO_FILENAME, fps=fps)
+    #generate_ext_mp4(VIDEO_FRAME_PATH, VIDEO_EXTENDED_FRAME_PATH, size, im1, im2, prompts[0], num_title_frames, num_init_frames, config["num_frames"])
     
     with open(STATUS_FILE, "w") as f:
         f.write(f"COMPLETED {uid} {VIDEO_FILENAME}.mp4")

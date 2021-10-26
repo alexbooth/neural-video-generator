@@ -2,6 +2,10 @@ import os
 import sys
 sys.path.append('../3rdparty/taming-transformers')
 
+import glob
+import shutil 
+
+import textwrap
 import math
 import imageio
 import numpy as np
@@ -186,18 +190,76 @@ def download_img(img_url):
         return
         
 def write_test_png(width, height, text, filename):
-    font = ImageFont.load_default()
+    #font = ImageFont.load_default()
+    wrapper = textwrap.TextWrapper(width=30) 
+    word_list = wrapper.wrap(text=text) 
+    text_new = ''
+    for ii in word_list[:-1]:
+        text_new = text_new + ii + '\n'
+    text_new += word_list[-1]    
+    
+    font = ImageFont.truetype('/font/Ubuntu-Bold.ttf', 30)
     image = Image.new('RGB', (width, height))
     draw = ImageDraw.Draw(image)
-    w, h = draw.textsize(text)
-    draw.text(((width-w)//2,(height-h)//2), text, font=font) 
+    w, h = draw.textsize(text_new, font=font)
+    draw.text(((width-w)//2,(height-h)//2), text_new, font=font) 
     imageio.imwrite(filename, np.array(image))
     
+ 
+def interpolate(im1, im2, weight):
+    # im1/im2 = np float32 tensors
+    return im1*(1-weight)+im2*weight
+
+def interpolate_frames(src_path, new_frames=1):
+    orig_list = sorted(glob.glob(os.path.join(src_path, "*.png")))
+    
+    for i in range(1, len(orig_list)):
+        print("interpolate between", orig_list[i-1], orig_list[i])
+        basename = os.path.basename(orig_list[i-1]).split(".")[0]
+        
+        im1 = np.array(Image.open(orig_list[i-1]).convert('RGB')).astype(np.float32) * 255
+        im2 = np.array(Image.open(orig_list[i]).convert('RGB')).astype(np.float32) * 255
+        
+        for j in range(1, new_frames+1):
+            weight = (1/(new_frames+1)) * j
+            int_im = interpolate(im1, im2, weight)
+            int_im = (int_im/255).astype(np.uint8)
+            imageio.imwrite(os.path.join(src_path, basename + f'{j}.png'), int_im)
+            
+    mod_list = sorted(glob.glob(os.path.join(src_path, "*.png")))
+         
+    for i, filename in enumerate(mod_list):
+        new_filename = f"{src_path}/{i:05}.png"
+        os.rename(filename, new_filename)
+        
+    mod_list = list(reversed(sorted(glob.glob(os.path.join(src_path, "*.png")))))
+    for i, src in enumerate(mod_list):
+        dst = f"{src_path}/{i+len(mod_list):05}.png"
+        shutil.copyfile(src, dst)
+       
+    print(mod_list)
+    
+def generate_ext_mp4(src_dir, dest_dir, size, im1, im2, title, num_title_frames, num_init_frames, num_clip_frames):
+    total_frames = 0
+    
+    # write title frames
+    for i in range(num_title_frames):
+        total_frames += 1
+        write_test_png(size[0], size[1], f"{title}", f"{dest_dir}/{total_frames:04}.png")
+        
+    # rest on input image 
+    for i in range(num_init_frames):
+        filename = f"{dest_dir}/{i+num_title_frames:04}.png"
+        weight = i/num_init_frames
+        im3 = interpolate(im1, im2, weight) / 255
+        im3 = im3.astype(np.uint8)
+        imageio.imwrite(filename, im3)  
+        
 def generate_mp4(frame_path, output_path, filename, fps=30):
     print("Generating video")  
     cwd = os.getcwd() 
     os.chdir(output_path)
-    p = Popen(['ffmpeg', '-y', '-r', f'{fps}', '-i', f'{frame_path}/%04d.png', '-c:v', 'libx264', '-vf', f'fps={fps}', '-pix_fmt', 'yuv420p', f'{filename}.mp4'], stdin=PIPE)
+    p = Popen(['ffmpeg', '-y', '-r', f'{fps}', '-i', f'{frame_path}/%05d.png', '-c:v', 'libx264', '-vf', f'fps={fps}', '-pix_fmt', 'yuv420p', f'{filename}.mp4'], stdin=PIPE)
     p.wait()
     os.chdir(cwd)
     print("The video is ready")
