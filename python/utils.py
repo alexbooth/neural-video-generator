@@ -265,7 +265,7 @@ def generate_ext(src_dir, dest_dir, size, im1, im2, title, num_title_frames, num
         
     # copy everything in original frame dir
     orig_frames = sorted(glob.glob(os.path.join(src_dir, "*.png")))
-    print(orig_frames)
+
     for i, src in enumerate(orig_frames):
         dst = f"{dest_dir}/{total_frames:05}.png"
         shutil.copyfile(src, dst)
