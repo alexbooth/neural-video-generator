@@ -1,3 +1,5 @@
+Final results! https://www.youtube.com/watch?v=nqZ4wrig3UM
+
 # neural-video-generator
 Generates videos with VQGAN+CLIP inside docker as a standalone task
 
